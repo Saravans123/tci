@@ -126,7 +126,9 @@ const Dashboard = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const response = await fetch('/data.csv');
+        // Use different paths for development and production
+        const basePath = process.env.PUBLIC_URL || '';
+        const response = await fetch(`${basePath}/data.csv`);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -289,4 +291,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
