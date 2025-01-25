@@ -2,7 +2,7 @@
   "name": "tci-dashboard",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://Saravans123.github.io/tcidashboard",
+  "homepage": "https://Saravans123.github.io/board",
   "dependencies": {
     "cra-template": "1.2.0",
     "papaparse": "^5.5.1",
