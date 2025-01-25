@@ -4,15 +4,14 @@ import Papa from 'papaparse';
 import _ from 'lodash';
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#ff0000', '#00ff00'];
+const PASSWORD = "TCI2025dash";
 
-// Function to format the date from "YYYYmM" to "YYYY-MM"
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
   const [year, month] = dateStr.split('m');
   return `${year}-${month.padStart(2, '0')}`;
 };
 
-// Function to convert graduation date (MMM-YY) to chart format (YYYYmM)
 const convertGradDate = (gradDate) => {
   if (!gradDate) return '';
   const [month, year] = gradDate.split('-');
@@ -20,8 +19,47 @@ const convertGradDate = (gradDate) => {
   return `20${year}m${monthNum}`;
 };
 
+const LoginScreen = ({ onLogin }) => {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (password === PASSWORD) {
+      onLogin();
+    } else {
+      setError('Incorrect password');
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+        <h2 className="text-2xl font-bold text-center">TCI Dashboard Login</h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
+              className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <button
+            type="submit"
+            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+          >
+            Login
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const CityChart = ({ data, city, selectedVars }) => {
-  // Get the impdate and graddate for this city (assuming they're the same for all rows of a city)
   const impDate = data[0]?.impdate;
   const gradDate = data[0]?.graduationdate;
 
@@ -49,7 +87,6 @@ const CityChart = ({ data, city, selectedVars }) => {
               labelFormatter={formatDate}
             />
             <Legend />
-            {/* Implementation date line */}
             <ReferenceLine 
               x={impDate} 
               stroke="red" 
@@ -66,7 +103,6 @@ const CityChart = ({ data, city, selectedVars }) => {
                 dy: 50
               }} 
             />
-            {/* Graduation date line */}
             <ReferenceLine 
               x={convertGradDate(gradDate)} 
               stroke="blue" 
@@ -108,7 +144,7 @@ const CityChart = ({ data, city, selectedVars }) => {
   );
 };
 
-const Dashboard = () => {
+const DashboardContent = ({ onLogout }) => {
   const [data, setData] = useState([]);
   const [countries, setCountries] = useState([]);
   const [cities, setCities] = useState([]);
@@ -126,9 +162,11 @@ const Dashboard = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Use different paths for development and production
-        const basePath = process.env.PUBLIC_URL || '';
-        const response = await fetch(`${basePath}/data.csv`);
+        const SHEET_ID = '1lcU9KEq9jpON6d1-5ojDgDMcdLmcKrUVPG1GQENb2bk';
+        const SHEET_GID = '795805122';
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
+        
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -188,10 +226,17 @@ const Dashboard = () => {
 
   return (
     <div className="p-4 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Dashboard - TCI</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Dashboard - TCI</h1>
+        <button 
+          onClick={onLogout}
+          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+        >
+          Logout
+        </button>
+      </div>
       
       <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Country Selection */}
         <div>
           <label className="block text-sm font-medium mb-1">Select Country:</label>
           <select 
@@ -206,7 +251,6 @@ const Dashboard = () => {
           </select>
         </div>
 
-        {/* Variables Selection */}
         <div>
           <label className="block text-sm font-medium mb-1">Select Variables:</label>
           <div className="space-y-2">
@@ -225,12 +269,10 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* City Selection */}
       {selectedCountry && (
         <div className="mb-6">
           <label className="block text-sm font-medium mb-1">Select Cities:</label>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-            {/* Select All checkbox */}
             <label className="flex items-center font-medium">
               <input
                 type="checkbox"
@@ -262,7 +304,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Charts */}
       <div className="mt-8">
         {selectedCities.map(city => {
           const cityData = data
@@ -288,6 +329,16 @@ const Dashboard = () => {
       )}
     </div>
   );
+};
+
+const Dashboard = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  if (!isLoggedIn) {
+    return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
+  }
+
+  return <DashboardContent onLogout={() => setIsLoggedIn(false)} />;
 };
 
 export default Dashboard;
