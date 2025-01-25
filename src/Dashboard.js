@@ -4,7 +4,6 @@ import Papa from 'papaparse';
 import _ from 'lodash';
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#ff0000', '#00ff00'];
-const PASSWORD = "TCI2025dash";
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
@@ -23,9 +22,19 @@ const LoginScreen = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
+  const hash = (str) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return hash;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (password === PASSWORD) {
+    if (hash(password) === -1621563955) {
       onLogin();
     } else {
       setError('Incorrect password');
@@ -180,7 +189,6 @@ const DashboardContent = ({ onLogout }) => {
         });
         
         setData(result.data);
-        
         const uniqueCountries = _.uniq(result.data.map(row => row.country)).sort();
         setCountries(uniqueCountries);
         
