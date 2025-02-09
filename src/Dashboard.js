@@ -3,16 +3,16 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import Papa from 'papaparse';
 import _ from 'lodash';
 
-const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ffc658'];
+const COLORS = ['#8884d8', '#82ca9d', '#ff7300', '#ff7300'];
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
   try {
-    const [year, month] = dateStr.split('m');
-    if (!year || !month) return '';
-    return `${year}-${String(month).padStart(2, '0')}`;
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4);
+    return `${year}-${month.padStart(2, '0')}`;
   } catch (error) {
-    console.error('Error formatting date:', error);
+    console.error('Error formatting date:', dateStr, error);
     return '';
   }
 };
@@ -75,47 +75,27 @@ const LoginScreen = ({ onLogin }) => {
 };
 
 const CityChart = ({ data, city, selectedVars }) => {
-  const cityData = data[0] || {};
-  const impDate = cityData.impdate;
-  const gradDate = cityData.graduationdate;
+  const impDate = data[0]?.impdate;
+  const gradDate = data[0]?.graduationdate;
+  const metadata = data[0];
 
   return (
     <div className="mb-8 border rounded p-4">
-      <div className="mb-8">
-        <h3 className="text-lg font-medium mb-2">{city}</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <span className="font-medium">NCU per 1000:</span> {cityData.NCU_per_1000}
-          </div>
-          <div>
-            <span className="font-medium">NCU:</span> {cityData.NCU}
-          </div>
-          <div>
-            <span className="font-medium">NCU Final Period:</span> {cityData.NCU_final_period}
-          </div>
-          <div>
-            <span className="font-medium">P Portmanteau:</span> {cityData.p_portmenteau?.toFixed(3)}
-          </div>
-          <div>
-            <span className="font-medium">Integration:</span> {cityData.integration}
-          </div>
-          <div>
-            <span className="font-medium">Analysis:</span> {cityData.analysis}
-          </div>
-          <div>
-            <span className="font-medium">LRT P-value:</span> {cityData.lrt_pvalue?.toFixed(3)}
-          </div>
-          <div>
-            <span className="font-medium">Ramp P-value:</span> {cityData.ramp_pvalue?.toFixed(3)}
-          </div>
-          <div className="col-span-2">
-            <span className="font-medium">Model:</span>{' '}
-            <span className="bg-gray-100 px-2 py-1 rounded">AR: {cityData.ar}</span>{' '}
-            <span className="bg-gray-100 px-2 py-1 rounded">MA: {cityData.ma}</span>
-          </div>
+      <h3 className="text-lg font-medium mb-2">{city}</h3>
+      <div className="text-xs mb-2">
+        <div className="grid grid-cols-4 gap-x-4 -space-y-1">
+          <div className="leading-none py-0">NCU per 1000: {metadata?.NCU_per_1000}</div>
+          <div className="leading-none py-0">NCU: {metadata?.NCU}</div>
+          <div className="leading-none py-0">NCU Final Period: {metadata?.NCU_final_period}</div>
+          <div className="leading-none py-0">P Portmanteau: {metadata?.portmenteau_pvalue}</div>
+          <div className="leading-none py-0">Integration: {metadata?.integration}</div>
+          <div className="leading-none py-0">Analysis: {metadata?.analysis}</div>
+          <div className="leading-none py-0">LRT P-value: {metadata?.LRT_pvalue}</div>
+          <div className="leading-none py-0">Ramp P-value: {metadata?.ramp_pvalue}</div>
+          <div className="leading-none py-0 col-span-2">Model: AR({metadata?.ar}), MA({metadata?.ma})</div>
         </div>
       </div>
-      <div style={{ height: '400px' }} className="mt-2">
+      <div style={{ height: '400px' }}>
         <ResponsiveContainer>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -169,16 +149,45 @@ const CityChart = ({ data, city, selectedVars }) => {
               }} 
             />
             {selectedVars.totalreportingsdp_imp && (
-              <Line type="monotone" dataKey="totalreportingsdp_imp" stroke={COLORS[0]} strokeWidth={2} name="Total Reporting SDP (Imp)" dot={false} />
+              <Line 
+                type="monotone" 
+                dataKey="totalreportingsdp_imp" 
+                stroke={COLORS[0]} 
+                name="Total Reporting SDP (Imp)" 
+                dot={false}
+                strokeWidth={2} 
+              />
             )}
             {selectedVars.nac_wraadj_total_imp && (
-              <Line type="monotone" dataKey="nac_wraadj_total_imp" stroke={COLORS[1]} strokeWidth={2} name="NAC Wrap Adj Total (Imp)" dot={false} />
+              <Line 
+                type="monotone" 
+                dataKey="nac_wraadj_total_imp" 
+                stroke={COLORS[1]} 
+                name="NAC Wrap Adj Total (Imp)" 
+                dot={false}
+                strokeWidth={2}
+              />
             )}
             {selectedVars.nac_wraadj_int && (
-              <Line type="monotone" dataKey="nac_wraadj_int" stroke={COLORS[2]} strokeWidth={2} name="NAC Wrap Adj Int" dot={false} />
+              <Line 
+                type="monotone" 
+                dataKey="nac_wraadj_int" 
+                stroke={COLORS[2]} 
+                name="NAC Wrap Adj Int" 
+                dot={false}
+                strokeWidth={2}
+              />
             )}
             {selectedVars.nac_wraadj_noint && (
-              <Line type="monotone" dataKey="nac_wraadj_noint" stroke={COLORS[3]} strokeDasharray="5 5" strokeWidth={2} name="NAC Wrap Adj No Int" dot={false} />
+              <Line 
+                type="monotone" 
+                dataKey="nac_wraadj_noint" 
+                stroke={COLORS[3]} 
+                name="NAC Wrap Adj NoInt" 
+                dot={false}
+                strokeWidth={2}
+                strokeDasharray="5 5"
+              />
             )}
           </LineChart>
         </ResponsiveContainer>
@@ -302,7 +311,11 @@ const DashboardContent = ({ onLogout }) => {
                   onChange={() => handleVarChange(variable)}
                   className="mr-2"
                 />
-                <span style={{ color: COLORS[idx] }}>{variable}</span>
+                <span style={{ 
+                  color: COLORS[idx]
+                }}>
+                  {variable}
+                </span>
               </label>
             ))}
           </div>
@@ -349,7 +362,7 @@ const DashboardContent = ({ onLogout }) => {
           const cityData = data
             .filter(row => row.city === city)
             .map(row => ({
-              date: row.reportingdate,
+              date: row.yearmonth,
               ...row
             }));
 
