@@ -3,12 +3,18 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import Papa from 'papaparse';
 import _ from 'lodash';
 
-const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#ff0000', '#00ff00'];
+const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ffc658'];
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
-  const [year, month] = dateStr.split('m');
-  return `${year}-${month.padStart(2, '0')}`;
+  try {
+    const [year, month] = dateStr.split('m');
+    if (!year || !month) return '';
+    return `${year}-${String(month).padStart(2, '0')}`;
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return '';
+  }
 };
 
 const convertGradDate = (gradDate) => {
@@ -69,13 +75,47 @@ const LoginScreen = ({ onLogin }) => {
 };
 
 const CityChart = ({ data, city, selectedVars }) => {
-  const impDate = data[0]?.impdate;
-  const gradDate = data[0]?.graduationdate;
+  const cityData = data[0] || {};
+  const impDate = cityData.impdate;
+  const gradDate = cityData.graduationdate;
 
   return (
     <div className="mb-8 border rounded p-4">
-      <h3 className="text-lg font-medium mb-2">{city}</h3>
-      <div style={{ height: '400px' }}>
+      <div className="mb-8">
+        <h3 className="text-lg font-medium mb-2">{city}</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <span className="font-medium">NCU per 1000:</span> {cityData.NCU_per_1000}
+          </div>
+          <div>
+            <span className="font-medium">NCU:</span> {cityData.NCU}
+          </div>
+          <div>
+            <span className="font-medium">NCU Final Period:</span> {cityData.NCU_final_period}
+          </div>
+          <div>
+            <span className="font-medium">P Portmanteau:</span> {cityData.p_portmenteau?.toFixed(3)}
+          </div>
+          <div>
+            <span className="font-medium">Integration:</span> {cityData.integration}
+          </div>
+          <div>
+            <span className="font-medium">Analysis:</span> {cityData.analysis}
+          </div>
+          <div>
+            <span className="font-medium">LRT P-value:</span> {cityData.lrt_pvalue?.toFixed(3)}
+          </div>
+          <div>
+            <span className="font-medium">Ramp P-value:</span> {cityData.ramp_pvalue?.toFixed(3)}
+          </div>
+          <div className="col-span-2">
+            <span className="font-medium">Model:</span>{' '}
+            <span className="bg-gray-100 px-2 py-1 rounded">AR: {cityData.ar}</span>{' '}
+            <span className="bg-gray-100 px-2 py-1 rounded">MA: {cityData.ma}</span>
+          </div>
+        </div>
+      </div>
+      <div style={{ height: '400px' }} className="mt-2">
         <ResponsiveContainer>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -128,23 +168,17 @@ const CityChart = ({ data, city, selectedVars }) => {
                 dy: 50
               }} 
             />
-            {selectedVars.nac_wraadj_total_imp && (
-              <Line type="monotone" dataKey="nac_wraadj_total_imp" stroke={COLORS[0]} name="NAC Wrap Adj Total (Imp)" dot={false} />
-            )}
             {selectedVars.totalreportingsdp_imp && (
-              <Line type="monotone" dataKey="totalreportingsdp_imp" stroke={COLORS[1]} name="Total Reporting SDP (Imp)" dot={false} />
+              <Line type="monotone" dataKey="totalreportingsdp_imp" stroke={COLORS[0]} strokeWidth={2} name="Total Reporting SDP (Imp)" dot={false} />
             )}
-            {selectedVars.totalreportingsdp && (
-              <Line type="monotone" dataKey="totalreportingsdp" stroke={COLORS[2]} name="Total Reporting SDP" dot={false} />
+            {selectedVars.nac_wraadj_total_imp && (
+              <Line type="monotone" dataKey="nac_wraadj_total_imp" stroke={COLORS[1]} strokeWidth={2} name="NAC Wrap Adj Total (Imp)" dot={false} />
             )}
-            {selectedVars.nac_wraadj_total && (
-              <Line type="monotone" dataKey="nac_wraadj_total" stroke={COLORS[3]} name="NAC Wrap Adj Total" dot={false} />
+            {selectedVars.nac_wraadj_int && (
+              <Line type="monotone" dataKey="nac_wraadj_int" stroke={COLORS[2]} strokeWidth={2} name="NAC Wrap Adj Int" dot={false} />
             )}
-            {selectedVars.nac_alladj_total_imp && (
-              <Line type="monotone" dataKey="nac_alladj_total_imp" stroke={COLORS[4]} name="NAC All Adj Total (Imp)" dot={false} />
-            )}
-            {selectedVars.nac_alladj_total && (
-              <Line type="monotone" dataKey="nac_alladj_total" stroke={COLORS[5]} name="NAC All Adj Total" dot={false} />
+            {selectedVars.nac_wraadj_noint && (
+              <Line type="monotone" dataKey="nac_wraadj_noint" stroke={COLORS[3]} strokeDasharray="5 5" strokeWidth={2} name="NAC Wrap Adj No Int" dot={false} />
             )}
           </LineChart>
         </ResponsiveContainer>
@@ -160,19 +194,17 @@ const DashboardContent = ({ onLogout }) => {
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedCities, setSelectedCities] = useState([]);
   const [selectedVars, setSelectedVars] = useState({
-    nac_wraadj_total_imp: true,
     totalreportingsdp_imp: true,
-    totalreportingsdp: true,
-    nac_wraadj_total: true,
-    nac_alladj_total_imp: true,
-    nac_alladj_total: true
+    nac_wraadj_total_imp: true,
+    nac_wraadj_int: true,
+    nac_wraadj_noint: true
   });
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const SHEET_ID = '1lcU9KEq9jpON6d1-5ojDgDMcdLmcKrUVPG1GQENb2bk';
-        const SHEET_GID = '795805122';
+        const SHEET_ID = '1ute_A9t0CBvWwwvMPGwz6OSGeQO6_qV8';
+        const SHEET_GID = '972210733';
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
         
         const response = await fetch(url);
